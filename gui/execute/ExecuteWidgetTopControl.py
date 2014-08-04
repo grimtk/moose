@@ -13,7 +13,6 @@ class ExecuteWidgetTopControl(MooseWidget):
 # public:
   def __init__(self, **kwargs):
     MooseWidget.__init__(self, **kwargs)
-
     # Define the mpi/threads/run controls
     self.addObject(QtGui.QHBoxLayout(), handle='ControlButtonLayout')
     self.object('ControlButtonLayout').addStretch(1)
@@ -38,6 +37,7 @@ class ExecuteWidgetTopControl(MooseWidget):
     ## DEMO INFO ##
     self.info()
 
+# private:
 # protected:
 
   ##
@@ -48,7 +48,6 @@ class ExecuteWidgetTopControl(MooseWidget):
     threads = self.object('Threads').text()
     args = self.object('Arguments').text()
     self._signal_run.emit(executable, mpi, threads, args)
-
   ##
   # Executes when 'Select' button is pressed (auto connected via addObject)
   def _callbackSelect(self):
