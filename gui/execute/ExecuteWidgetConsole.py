@@ -2,6 +2,7 @@ import os, sys
 from PySide import QtCore, QtGui
 
 from base import *
+<<<<<<< HEAD
 
 ##
 # Widget for executing and displaying MOOSE executable results
@@ -10,6 +11,17 @@ class ExecuteWidgetConsole(PeacockWidget):
 # public:
   def __init__(self, **kwargs):
     PeacockWidget.__init__(self, **kwargs)
+=======
+from utils import *
+
+##
+# Widget for executing and displaying MOOSE executable results
+class ExecuteWidgetConsole(MooseWidget):
+
+# public:
+  def __init__(self, **kwargs):
+    MooseWidget.__init__(self, **kwargs)
+>>>>>>> a15481f2f7702504bbc9d12841188a339cee5df3
 
     # Create progress bar and console window
     self.addObject(QtGui.QProgressBar(self), handle='ExecutionProgress', label='Progress:')
