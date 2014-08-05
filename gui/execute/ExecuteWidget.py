@@ -8,6 +8,7 @@ from ExecuteWidgetConsole import *
 
 ##
 # The Peacock Execute Tab
+class ExecuteWidget(MooseWidget):
 
 # public:
   def __init__(self, **kwargs):
