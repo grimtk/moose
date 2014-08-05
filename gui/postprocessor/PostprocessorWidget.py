@@ -6,11 +6,11 @@ from filecontrols import *
 
 ##
 # The Peacock-2 Postprocessor Tab
-class PostprocessorWidget(PeacockWidget):
+class PostprocessorWidget(MooseWidget):
 
 # public:
   def __init__(self, **kwargs):
-    PeacockWidget.__init__(self, **kwargs)
+    MooseWidget.__init__(self, **kwargs)
 
     # Add the controls and console display
     #self.addObject(PlayerControlsWidget(**kwargs), handle='PlayerControls')

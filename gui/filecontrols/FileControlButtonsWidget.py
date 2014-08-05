@@ -7,7 +7,7 @@ from base import *
 
 ##
 # An input file widget
-class FileControlButtonsWidget(PeacockWidget):
+class FileControlButtonsWidget(MooseWidget):
 
   # Define signals that will be emitted from this object
   signal_open = QtCore.Signal(str)
@@ -15,7 +15,7 @@ class FileControlButtonsWidget(PeacockWidget):
   signal_reset = QtCore.Signal()
 
   def __init__(self, **kwargs):
-    PeacockWidget.__init__(self, **kwargs)
+    MooseWidget.__init__(self, **kwargs)
 
     self.addObject(QtGui.QHBoxLayout(), handle='FileControlButtonLayout')
     self.object('FileControlButtonLayout').addStretch(1)
@@ -65,7 +65,7 @@ class FileControlButtonsWidget(PeacockWidget):
 
   ##
   # Setup the 'Reset' button (auto called via setup())
-  def _setupReset(self, q_object):
-    q_object.setToolTip('Reset plot to start')
+  #def _setupReset(self, q_object):
+  #  q_object.setToolTip('Reset plot to start')
     #q_object.property('FileControlButtonLayout').setAlignment(QtCore.Qt.AlignCenter)
 

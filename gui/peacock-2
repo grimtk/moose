@@ -9,15 +9,15 @@ from filecontrols import *
 
 
 # A DEMO TABBED WIDGET
-class PeacockTabWidget(PeacockWidget):
+class PeacockTabWidget(MooseWidget):
   def __init__(self, **kwargs):
-    PeacockWidget.__init__(self, **kwargs)
+    MooseWidget.__init__(self, **kwargs)
 
     # Create Tab layout
-    self.addObject(QtGui.QTabWidget(), handle='Peacock2Tabs')
+    self.addObject(QtGui.QTabWidget(), handle='PeacockTabs')
 
     # Add the tabs to the layout
-    self.addObject(PostprocessorWidget(**kwargs), handle='Postprocessor', parent='Peacock2Tabs')
+    self.addObject(PostprocessorWidget(**kwargs), handle='Postprocessor', parent='PeacockTabs')
     #self.addObject(InputWidget(**kwargs), handle='Input', parent='Peacock2Tabs')
 
     self.setup()
