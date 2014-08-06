@@ -10,9 +10,9 @@ from base import *
 class FileControlButtonsWidget(MooseWidget):
 
   # Define signals that will be emitted from this object
-  signal_open = QtCore.Signal(str)
-  signal_save = QtCore.Signal(str)
-  signal_reset = QtCore.Signal()
+  _signal_open = QtCore.Signal(str)
+  _signal_save = QtCore.Signal(str)
+  _signal_reset = QtCore.Signal()
 
   def __init__(self, **kwargs):
     MooseWidget.__init__(self, **kwargs)
@@ -34,22 +34,22 @@ class FileControlButtonsWidget(MooseWidget):
   def _callbackOpen(self):
     print  >> sys.stderr,'_callbackOpen'
     file_name = QtGui.QFileDialog.getOpenFileName(self, 'Select plot file...')
-    print  >> sys.stderr,'file_name=', file_name
-    self.signal_open.emit(file_name)
+    print  >> sys.stderr,'file_name=', file_name[0]
+    self._signal_open.emit(file_name[0])
 
   ##
   # Executes when 'Save' button is pressed
   def _callbackSave(self):
-    #print >> sys.stderr, '_callbackSave'
+    print >> sys.stderr, '_callbackSave'
     save_file_name = QtGui.QFileDialog.getSaveFileName(self, 'Select plot file to save...')
-    #print >> sys.stderr, 'save_file_name=', save_file_name
-    self.signal_save.emit(save_file_name)
+    print >> sys.stderr, 'save_file_name=', save_file_name[0]
+    self._signal_save.emit(save_file_name[0])
 
   ##
   # Executes when 'Reset' button is pressed
   def _callbackReset(self):
-    #print  >> sys.stderr,'_callbackReset'
-    self.signal_reset.emit()
+    print  >> sys.stderr,'_callbackReset'
+    self._signal_reset.emit()
 
   ##
   # Setup the 'Open' file button (auto called via setup())

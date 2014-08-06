@@ -292,7 +292,8 @@ class MooseWidget(QtGui.QWidget):
       signal = self.signal(signal, search_children)
 
     if not isinstance(signal, QtCore.Signal):
-      peacockError('The supplied signal must be valid signal name or a QtCore.Signal object')
+      #peacockError('The supplied signal must be valid signal name or a QtCore.Signal object')
+      self._error_message.showMessage('The supplied signal must be valid signal name or a QtCore.Signal object')
 
     # Get method
     callback = callback_name
