@@ -6,6 +6,7 @@ from PySide import QtCore, QtGui
 from base import *
 from postprocessor import *
 from filecontrols import *
+from playercontrols import *
 
 
 # A DEMO TABBED WIDGET

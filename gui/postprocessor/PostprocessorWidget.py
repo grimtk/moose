@@ -3,6 +3,7 @@ from PySide import QtCore, QtGui
 
 from base import *
 from filecontrols import *
+from playercontrols import *
 
 ##
 # The Peacock-2 Postprocessor Tab
@@ -13,13 +14,18 @@ class PostprocessorWidget(MooseWidget):
     MooseWidget.__init__(self, **kwargs)
 
     # Add the controls and console display
-    #self.addObject(PlayerControlsWidget(**kwargs), handle='PlayerControls')
     self.addObject(FileControlButtonsWidget(**kwargs), handle='FileControlButtonLayout')
+    self.addObject(PlayerControlsWidget(**kwargs), handle='PlayerControls')
 
     # Connect the 'open' button to the open_file method
     self.connectSignal('open', self.readPlotFile)
     self.connectSignal('save', self.savePlotFile)
     self.connectSignal('reset', self.resetPlot)
+    self.connectSignal('back', self.back)
+    self.connectSignal('play', self.play)
+    self.connectSignal('pause', self.pause)
+    self.connectSignal('forward', self.forward)
+    self.connectSignal('loop', self.loop)
 
     # Perform the setup for this object
     self.setup()
@@ -43,6 +49,32 @@ class PostprocessorWidget(MooseWidget):
   # @param file The file to save plot information to.
   def resetPlot(self):
     print >> sys.stderr, 'In resetPlot'
+
+  ##
+  # Method for causing a plot to go backward in time.
+  def back(self):
+    print >> sys.stderr, 'In back function'
+
+  ##
+  # Method for causing a plot to go play from the current
+  # time forward.
+  def play(self):
+    print >> sys.stderr, 'In play function'
+
+  ##
+  # Method for causing a plot to pause
+  def pause(self):
+    print >> sys.stderr, 'In pause function'
+
+  ##
+  # Method for causing a plot to go forward in time.
+  def forward(self):
+    print >> sys.stderr, 'In forward function'
+
+  ##
+  # Method for causing a plot to loop in time.
+  def loop(self):
+    print >> sys.stderr, 'In loop function'
 
 
 
