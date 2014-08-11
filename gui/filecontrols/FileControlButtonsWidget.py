@@ -18,7 +18,7 @@ class FileControlButtonsWidget(MooseWidget):
     MooseWidget.__init__(self, **kwargs)
 
     self.addObject(QtGui.QFrame(), handle='Frame')
-    self.object('Frame').setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Raised)
+    self.object('Frame').setFrameStyle(QtGui.QFrame.StyledPanel | QtGui.QFrame.Raised)
     self.addObject(QtGui.QHBoxLayout(), handle='FileControlButtonLayout', parent='Frame')
     #self.object('FileControlButtonLayout').addStretch(1)
     self.addObject(QtGui.QPushButton('&Open'), handle='Open', parent='FileControlButtonLayout')

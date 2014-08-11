@@ -19,8 +19,10 @@ class PlayerControlsWidget(MooseWidget):
   def __init__(self, **kwargs):
     MooseWidget.__init__(self, **kwargs)
 
-    self.addObject(QtGui.QHBoxLayout(), handle='PlayerControlsLayout')
-    self.object('PlayerControlsLayout').addStretch(1)
+    self.addObject(QtGui.QFrame(), handle='Frame')
+    self.object('Frame').setFrameStyle(QtGui.QFrame.StyledPanel | QtGui.QFrame.Raised)
+    self.addObject(QtGui.QHBoxLayout(), handle='PlayerControlsLayout', parent='Frame')
+    #self.object('PlayerControlsLayout').addStretch(1)
     self.addObject(QtGui.QPushButton(QtGui.QIcon(":/backButton.png"), 'Back'), handle='Back', parent='PlayerControlsLayout')
     self.addObject(QtGui.QPushButton(QtGui.QIcon(":/playButton.png"), 'Play'), handle='Play', parent='PlayerControlsLayout')
     self.addObject(QtGui.QPushButton(QtGui.QIcon(":/pauseButton.png"), 'Pause'), handle='Pause', parent='PlayerControlsLayout')
