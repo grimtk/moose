@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+<file alias="backButton.png">resources/backButton.png</file>
+<file alias="firstButton.png">resources/firstButton.png</file>
+<file alias="forwardButton.png">resources/forwardButton.png</file>
+<file alias="lastButton.png">resources/lastButton.png</file>
+<file alias="loopButton.png">resources/loopButton.png</file>
+<file alias="pauseButton.png">resources/pauseButton.png</file>
+<file alias="playButton.png">resources/playButton.png</file>
+</qresource>
+</RCC>
+
