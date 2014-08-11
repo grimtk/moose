@@ -2,6 +2,7 @@ import os, sys
 from PySide import QtCore, QtGui
 
 from base import *
+from axissettings import *
 from filecontrols import *
 from playercontrols import *
 
@@ -14,6 +15,7 @@ class PostprocessorWidget(MooseWidget):
     MooseWidget.__init__(self, **kwargs)
 
     # Add the controls and console display
+    self.addObject(AxisSettingsWidget(**kwargs), handle='AxisSettings')
     self.addObject(FileControlButtonsWidget(**kwargs), handle='FileControlButtonLayout')
     self.addObject(PlayerControlsWidget(**kwargs), handle='PlayerControls')
 
