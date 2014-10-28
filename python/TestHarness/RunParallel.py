@@ -2,7 +2,8 @@ from subprocess import *
 from time import sleep
 from timeit import default_timer as clock
 
-from tempfile import TemporaryFile
+#from tempfile import TemporaryFile
+from tempfile import NamedTemporaryFile
 #from Queue import Queue
 from collections import deque
 from Tester import Tester
@@ -75,7 +76,8 @@ class RunParallel:
     # It deadlocks rather easy.  Instead we will use temporary files
     # to hold the output as it is produced
     try:
-      f = TemporaryFile()
+      #f = TemporaryFile()
+      f = NamedTemporaryFile(delete=False)
       p = Popen([command],stdout=f,stderr=f,close_fds=False, shell=True)
     except:
       print "Error in launching a new task"

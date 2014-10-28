@@ -124,6 +124,7 @@ class TestHarness:
             if file == self.options.input_file_name: #and self.test_match.search(file):
               saved_cwd = os.getcwd()
               sys.path.append(os.path.abspath(dirpath))
+              print >> sys.stderr, "dirpath=",dirpath
               os.chdir(dirpath)
 
               if self.prunePath(file):
@@ -150,12 +151,15 @@ class TestHarness:
 
               # Go through the Testers and run them
               for tester in testers:
+                self.print_tester(tester)
                 # Double the alloted time for tests when running with the valgrind option
                 tester.setValgrindMode(self.options.valgrind_mode)
 
                 # When running in valgrind mode, we end up with a ton of output for each failed
                 # test.  Therefore, we limit the number of fails...
                 if self.options.valgrind_mode and self.num_failed > self.options.valgrind_max_fails:
+                  (should_run, reason) = (False, 'Max Fails Exceeded')
+                elif self.num_failed > self.options.max_fails:
                   (should_run, reason) = (False, 'Max Fails Exceeded')
                 else:
                   (should_run, reason) = tester.checkRunnableBase(self.options, self.checks)
@@ -167,6 +171,7 @@ class TestHarness:
                     self.options.cluster_handle.write('[Jobs]\n')
 
                   command = tester.getCommand(self.options)
+                  print >> sys.stderr, 'command = ',command
                   # This method spawns another process and allows this loop to continue looking for tests
                   # RunParallel will call self.testOutputAndFinish when the test has completed running
                   # This method will block when the maximum allowed parallel processes are running
@@ -214,6 +219,25 @@ class TestHarness:
     # Return the inverse of will_run to indicate that this path should be pruned
     return prune
 
+  # This function prints out the tester.specs values.
+  def print_tester(self,tester):
+    items = [ \
+       'heavy'         , 'no_copy'     , 'skip'                      , 'tecplot'     , 'test_name'   , 
+       'cli_args'      , 'skip_checks' , 'recover'                   , 'scale_refine', 'errors'      , 
+       'group'         , 'min_threads' , 'library_mode'              , 'vtk'         , 'min_parallel', 
+       'platform'      , 'input_switch', 'skip_test_harness_cli_args', 'input'       , 'compiler'    , 
+       'type'          , 'method'      , 'max_threads'               , 'deleted'     , 'prereq'      , 
+       'mesh_mode'     , 'post_command', 'min_reported_time'         , 'expect_out'  , 'unique_ids'  , 
+       'walltime'      , 'dtk'         , 'valgrind'                  , 'job_name'    , 'should_crash', 
+       'allow_warnings', 'max_time'    , 'max_parallel'              , 'petsc_version']
+
+    for i in items:
+      try:
+        print >> sys.stderr, "tester.specs['", i, "']:", tester.specs[i]
+      except KeyError:
+        print >> sys.stderr, "not found"
+    print >> sys.stderr, "======================"
+        
   def augmentParameters(self, filename, tester):
     params = tester.parameters()
 
@@ -399,6 +423,7 @@ class TestHarness:
       return ('BATCH FILE NOT FOUND', '')
 
   def buildPBSBatch(self, output, tester):
+    print >> sys.stderr, 'buildPBSBatch: output: ',output
     # Create/Update the batch file
     if 'command not found' in output:
       return('QSUB NOT FOUND', '')
@@ -626,10 +651,12 @@ class TestHarness:
     parser.add_argument('--valgrind', action='store_const', dest='valgrind_mode', const='NORMAL', help='Run normal valgrind tests')
     parser.add_argument('--valgrind-heavy', action='store_const', dest='valgrind_mode', const='HEAVY', help='Run heavy valgrind tests')
     parser.add_argument('--valgrind-max-fails', nargs=1, type=int, dest='valgrind_max_fails', default=5, help='The number of valgrind tests allowed to fail before any additional valgrind tests will run')
+    parser.add_argument('--max-fails', nargs=1, type=int, dest='max_fails', default=50, help='The number of tests allowed to fail before any additional tests will run')
     parser.add_argument('--pbs', nargs='?', metavar='batch_file', dest='pbs', const='generate', help='Enable launching tests via PBS. If no batch file is specified one will be created for you')
     parser.add_argument('--pbs-cleanup', nargs=1, metavar='batch_file', help='Clean up the directories/files created by PBS. You must supply the same batch_file used to launch PBS.')
     parser.add_argument('--re', action='store', type=str, dest='reg_exp', help='Run tests that match --re=regular_expression')
     parser.add_argument('--parallel-mesh', action='store_true', dest='parallel_mesh', help="Pass --parallel-mesh to executable")
+    parser.add_argument('--error', action='store_true', help='Run the tests with warnings as errors')
     parser.add_argument('--cli-args', nargs='?', type=str, dest='cli_args', help='Append the following list of arguments to the command line (Encapsulate the command in quotes)')
 
     outputgroup = parser.add_argument_group('Output Options', 'These options control the output of the test harness. The sep-files options write output to files named test_name.TEST_RESULT.txt. All file output will overwrite old files')
