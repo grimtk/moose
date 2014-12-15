@@ -1,5 +1,5 @@
 import os, sys, re, inspect, types, errno, pprint, subprocess, io, shutil, time, copy
-import path_tool, pickle
+import path_tool
 
 path_tool.activate_module('FactorySystem')
 path_tool.activate_module('argparse')
@@ -110,9 +110,17 @@ class TestHarness:
     self.start_time = clock()
 
     # PBS STUFF
+    # Checking PBS status mode
     if self.options.pbs and os.path.exists(self.options.pbs):
       self.options.processingPBS = True
-      self.processPBSResults()
+      self.runner.processPBSResults()
+
+    # Checking pbs_emulator job status
+    elif self.options.pbs_emulator and os.path.exists(self.options.pbs_emulator):
+      self.options.processingPBS = True
+      self.runner.processPBSResults()
+
+    # Launch immediate or PBS jobs
     else:
       self.options.processingPBS = False
       base_dir = os.getcwd()
@@ -155,11 +163,16 @@ class TestHarness:
                 testers = self.appendRecoverableTests(testers)
 
 
-              # Handle PBS tests.cluster file
+              # Handle PBS tests.cluster file; this launches PBS jobs
+              #print >> sys.stderr, "In findTestsAndRun: self.options.pbs, pbs_emulator:",self.options.pbs, self.options.pbs_emulator
               if self.options.pbs:
+                #print >> sys.stderr, "In findTestsAndRun: run pbs job"
                 (tester, command) = self.createClusterLauncher(dirpath, testers)
                 if command is not None:
+                  #print >> sys.stderr, "In findTestsAndRun: run command: ",command
                   self.runner.run(tester, command)
+
+              # Immediate mode; this launches immediate and pbs_emulator jobs
               else:
                 # Go through the Testers and run them
                 for tester in testers:
@@ -180,6 +193,8 @@ class TestHarness:
                     # This method spawns another process and allows this loop to continue looking for tests
                     # RunParallel will call self.testOutputAndFinish when the test has completed running
                     # This method will block when the maximum allowed parallel processes are running
+                    #print >> sys.stderr, 'In findTestsAndRun: immediate mode: test_name:', tester.parameters()['test_name']
+                    #print >> sys.stderr, 'In findTestsAndRun: immediate command:', command
                     self.runner.run(tester, command)
                   else: # This job is skipped - notify the runner
                     if (reason != ''):
@@ -190,15 +205,16 @@ class TestHarness:
               sys.path.pop()
 
     # TODO: Don't wait when we are running with --pbs
-#    self.runner.join()
+    if not self.options.pbs:
+      self.runner.join()
     # Wait for all tests to finish
-    if self.options.pbs and self.options.processingPBS == False:
+    if (self.options.pbs or self.options.pbs_emulator) and self.options.processingPBS == False:
       print '\n< checking batch status >\n'
       self.options.processingPBS = True
-      self.processPBSResults()
+      self.runner.processPBSResults()
 
     # TODO: Might still cleanup even with --pbs
-#    self.cleanup()
+    self.cleanup()
 
     self.runner.writeState()
 
@@ -321,7 +337,9 @@ class TestHarness:
       caveats = test['caveats']
 
     if self.options.pbs and self.options.processingPBS == False:
-      (reason, output) = self.buildPBSBatch(output, tester)
+      (reason, output) = self.runner.buildPBSBatch(output, tester)
+    #elif self.options.pbs_emulator and self.options.processingPBS == False:
+    #  (reason, output) = self.runner.buildPBSBatch(output, tester)
     elif self.options.dry_run:
       reason = 'DRY_RUN'
       output += '\n'.join(tester.processResultsCommand(self.moose_dir, self.options))
@@ -372,150 +390,7 @@ class TestHarness:
     else:
       return True
 
-# PBS Defs
-  def processPBSResults(self):
-    # If batch file exists, check the contents for pending tests.
-    if os.path.exists(self.options.pbs):
-      f = open(self.options.pbs, "r")
-
-
-      foo = pickle.load(f)
-      for tuple in foo:
-        (p, command, tester, start_time) = tuple
-
-        try:
-          if os.kill(p.pid, 0) is None:
-            print "Process Running ", p.pid
-          else:
-            print "Unknown"
-        except:
-          print "Process Terminated ", p.pid
-
-      sys.exit(0)
-
-
-
-
-      # Build a list of launched jobs
-      batch_file = open(self.options.pbs)
-      batch_list = [y.split(':') for y in [x for x in batch_file.read().split('\n')]]
-      batch_file.close()
-      del batch_list[-1:]
-
-      # Loop through launched jobs and match the TEST_NAME to determin correct stdout (Output_Path)
-      for job in batch_list:
-        file = '/'.join(job[2].split('/')[:-2]) + '/' + job[3]
-
-        # Build a Warehouse to hold the MooseObjects
-        warehouse = Warehouse()
-
-        # Build a Parser to parse the objects
-        parser = Parser(self.factory, warehouse)
-
-        # Parse it
-        parser.parse(file)
-
-        # Retrieve the tests from the warehouse
-        testers = warehouse.getAllObjects()
-        for tester in testers:
-          self.augmentParameters(file, tester)
-
-        for tester in testers:
-          # Build the requested Tester object
-          if job[1] == tester.parameters()['test_name']:
-            # Create Test Type
-            # test = self.factory.create(tester.parameters()['type'], tester)
-
-            # Get job status via qstat
-            qstat = ['qstat', '-f', '-x', str(job[0])]
-            qstat_command = subprocess.Popen(qstat, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            qstat_stdout = qstat_command.communicate()[0]
-            if qstat_stdout != None:
-              output_value = re.search(r'job_state = (\w+)', qstat_stdout).group(1)
-            else:
-              return ('QSTAT NOT FOUND', '')
-
-            # Report the current status of JOB_ID
-            if output_value == 'F':
-              # F = Finished. Get the exit code reported by qstat
-              exit_code = int(re.search(r'Exit_status = (-?\d+)', qstat_stdout).group(1))
-
-              # Read the stdout file
-              if os.path.exists(job[2]):
-                output_file = open(job[2], 'r')
-                # Not sure I am doing this right: I have to change the TEST_DIR to match the temporary cluster_launcher TEST_DIR location, thus violating the tester.specs...
-                tester.parameters()['test_dir'] = '/'.join(job[2].split('/')[:-1])
-                outfile = output_file.read()
-                output_file.close()
-              else:
-                # I ran into this scenario when the cluster went down, but launched/completed my job :)
-                self.handleTestResult(tester.specs, '', 'FAILED (NO STDOUT FILE)', 0, 0, True)
-
-              self.testOutputAndFinish(tester, exit_code, outfile)
-
-            elif output_value == 'R':
-              # Job is currently running
-              self.handleTestResult(tester.specs, '', 'RUNNING', 0, 0, True)
-            elif output_value == 'E':
-              # Job is exiting
-              self.handleTestResult(tester.specs, '', 'EXITING', 0, 0, True)
-            elif output_value == 'Q':
-              # Job is currently queued
-              self.handleTestResult(tester.specs, '', 'QUEUED', 0, 0, True)
-    else:
-      return ('BATCH FILE NOT FOUND', '')
-
-  def buildPBSBatch(self, output, tester):
-    # Create/Update the batch file
-    if 'command not found' in output:
-      return ('QSUB NOT FOUND', '')
-    else:
-      # Get the PBS Job ID using qstat
-      results = re.findall(r'JOB_NAME: (\w+\d+) JOB_ID: (\d+) TEST_NAME: (\S+)', output, re.DOTALL)
-      if len(results) != 0:
-        file_name = self.options.pbs
-        job_list = open(os.path.abspath(os.path.join(tester.specs['executable'], os.pardir)) + '/' + file_name, 'a')
-        for result in results:
-          (test_dir, job_id, test_name) = result
-          qstat_command = subprocess.Popen(['qstat', '-f', '-x', str(job_id)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-          qstat_stdout = qstat_command.communicate()[0]
-          # Get the Output_Path from qstat stdout
-          if qstat_stdout != None:
-            output_value = re.search(r'Output_Path(.*?)(^ +)', qstat_stdout, re.S | re.M).group(1)
-            output_value = output_value.split(':')[1].replace('\n', '').replace('\t', '')
-          else:
-            job_list.close()
-            return ('QSTAT NOT FOUND', '')
-          # Write job_id, test['test_name'], and Ouput_Path to the batch file
-          job_list.write(str(job_id) + ':' + test_name + ':' + output_value + ':' + self.options.input_file_name  + '\n')
-        # Return to TestHarness and inform we have launched the job
-        job_list.close()
-        return ('', 'LAUNCHED')
-      else:
-        return ('QSTAT INVALID RESULTS', '')
-
-  def cleanPBSBatch(self):
-    # Open the PBS batch file and assign it to a list
-    if os.path.exists(self.options.pbs_cleanup):
-      batch_file = open(self.options.pbs_cleanup, 'r')
-      batch_list = [y.split(':') for y in [x for x in batch_file.read().split('\n')]]
-      batch_file.close()
-      del batch_list[-1:]
-    else:
-      print 'PBS batch file not found:', self.options.pbs_cleanup
-      sys.exit(1)
-
-    # Loop through launched jobs and delete whats found.
-    for job in batch_list:
-      if os.path.exists(job[2]):
-        batch_dir = os.path.abspath(os.path.join(job[2], os.pardir)).split('/')
-        if os.path.exists('/'.join(batch_dir)):
-          shutil.rmtree('/'.join(batch_dir))
-        if os.path.exists('/'.join(batch_dir[:-1]) + '/' + job[3] + '.cluster'):
-          os.remove('/'.join(batch_dir[:-1]) + '/' + job[3] + '.cluster')
-    os.remove(self.options.pbs_cleanup)
-
-# END PBS Defs
+# PBS Defs were here
 
   ## Update global variables and print output based on the test result
   # Containing OK means it passed, skipped means skipped, anything else means it failed
@@ -631,6 +506,8 @@ class TestHarness:
     print colorText( summary % (self.num_passed, self.num_skipped, self.num_pending, self.num_failed), self.options, "", html=True )
     if self.options.pbs:
       print '\nYour PBS batch file:', self.options.pbs
+    if self.options.pbs_emulator:
+      print '\nYour PBS batch file:', self.options.pbs_emulator
     if self.file:
       self.file.close()
 
@@ -696,6 +573,7 @@ class TestHarness:
     parser.add_argument('--valgrind-max-fails', nargs=1, type=int, dest='valgrind_max_fails', default=5, help='The number of valgrind tests allowed to fail before any additional valgrind tests will run')
     parser.add_argument('--max-fails', nargs=1, type=int, dest='max_fails', default=50, help='The number of tests allowed to fail before any additional tests will run')
     parser.add_argument('--pbs', nargs='?', metavar='batch_file', dest='pbs', const='generate', help='Enable launching tests via PBS. If no batch file is specified one will be created for you')
+    parser.add_argument('--pbs_emulator', nargs='?', metavar='emu_batch_file', dest='pbs_emulator', const='generate', help='Enable launching tests via emulation of PBS. If no batch file is specified one will be created for you')
     parser.add_argument('--pbs-cleanup', nargs=1, metavar='batch_file', help='Clean up the directories/files created by PBS. You must supply the same batch_file used to launch PBS.')
     parser.add_argument('--re', action='store', type=str, dest='reg_exp', help='Run tests that match --re=regular_expression')
     parser.add_argument('--parallel-mesh', action='store_true', dest='parallel_mesh', help="Pass --parallel-mesh to executable")
@@ -730,6 +608,9 @@ class TestHarness:
       if type(value) == list and len(value) == 1:
         tmp_str = getattr(self.options, key)
         setattr(self.options, key, value[0])
+
+    print >> sys.stderr, "TestHarness.parseCLArgs: self.options.pbs=",self.options.pbs
+    print >> sys.stderr, "TestHarness.parseCLArgs: self.options.pbs_emulator=",self.options.pbs_emulator
 
     self.checkAndUpdateCLArgs()
 
@@ -776,6 +657,14 @@ class TestHarness:
         if m != None and int(m.group(1)) > largest_serial_num:
           largest_serial_num = int(m.group(1))
       opts.pbs = "pbs_" +  str(largest_serial_num+1).zfill(3)
+
+    elif opts.pbs_emulator == 'generate':
+      largest_serial_num = 0
+      for name in os.listdir('.'):
+        m = re.search('pbs_(\d{3})', name)
+        if m != None and int(m.group(1)) > largest_serial_num:
+          largest_serial_num = int(m.group(1))
+      opts.pbs_emulator = "pbs_" +  str(largest_serial_num+1).zfill(3)
 
   def postRun(self, specs, timing):
     return
